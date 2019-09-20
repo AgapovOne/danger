@@ -176,7 +176,7 @@ module Danger
     #
     def import_dangerfile_from_gitlab(slug_or_project_id, branch = nil, path = nil)
       download_url = env.request_source.file_url(repository: slug_or_project_id, branch: branch, path: path || "Dangerfile")
-      local_path = download(download_url)
+      local_path = download(download_url, headers: { "PRIVATE-TOKEN" => @environment["DANGER_GITLAB_API_TOKEN"] })
       @dangerfile.parse(Pathname.new(local_path))
     end
 
@@ -187,9 +187,11 @@ module Danger
     # @param    [String] path_or_url
     #           a local path or a https URL to the Ruby file to import
     #           a danger plugin from.
+    # @param    [String] headers
+    #           Headers to include into download request
     # @return [String] The path to the downloaded Ruby file
     #
-    def download(path_or_url)
+    def download(path_or_url, headers = nil)
       raise "`download` requires a string" unless path_or_url.kind_of?(String)
       raise "URL is not https, for security reasons `danger` only supports encrypted requests" if URI.parse(path_or_url).scheme != "https"
 
@@ -199,7 +201,9 @@ module Danger
       @http_client ||= Faraday.new do |b|
         b.adapter :net_http
       end
-      content = @http_client.get(path_or_url)
+      content = @http_client.get(path_or_url) do |req|
+        req.headers = headers
+      end
 
       path = File.join(Dir.mktmpdir, "temporary_danger.rb")
       File.write(path, content.body)
