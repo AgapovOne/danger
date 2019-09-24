@@ -176,7 +176,8 @@ module Danger
     #
     def import_dangerfile_from_gitlab(slug_or_project_id, branch = nil, path = nil)
       download_url = env.request_source.file_url(repository: slug_or_project_id, branch: branch, path: path || "Dangerfile")
-      local_path = download(download_url, headers: { "PRIVATE-TOKEN" => @environment["DANGER_GITLAB_API_TOKEN"] })
+      headers =  { "PRIVATE-TOKEN" => ENV["DANGER_GITLAB_API_TOKEN"] } if ENV["DANGER_GITLAB_API_TOKEN"]
+      local_path = download(download_url, headers: headers)
       @dangerfile.parse(Pathname.new(local_path))
     end
 
